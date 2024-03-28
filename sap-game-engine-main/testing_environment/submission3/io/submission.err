@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/sap-game-engine-main/testing_environment/submission3/submission.py", line 1122, in <module>
+    make_move(game_info)
+  File "/home/sap-game-engine-main/testing_environment/submission3/submission.py", line 1045, in make_move
+    r3_make_move(game_info, game_info.round_num)
+  File "/home/sap-game-engine-main/testing_environment/submission3/submission.py", line 517, in r3_make_move
+    if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[0]], False) == 0):
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+IndexError: list index out of range

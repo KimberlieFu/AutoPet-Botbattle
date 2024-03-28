@@ -1,0 +1,504 @@
+'''
+    ROUND 1
+    '''
+    # SOPHIE ROUND 1 DRAFT FUNC HERE:
+    '''
+    Round 1 structure:
+        - buy 3 pets
+        - buy 0 food
+        - use 1 roll MAX. to aid this process
+    '''
+
+    def r1_make_move(game_info: 'GameInfo'):
+        # case 1: currently team is empty
+        global team_size
+        global horse_acquired
+        global rolls_performed
+        
+        if (game_info.player_info.coins < 3):
+            bot_battle.end_turn()
+            rolls_performed = 0
+            return
+
+        if team_size == 0:
+            # 92% chance that >=1 top 4 pet will be present
+            # look for top 4 rank pet/s, starting with horse
+            for shop_pet in game_info.player_info.shop_pets:
+                if shop_pet.type == PetType.HORSE:
+                    # buy only a single horse
+                    # potentially put BUY in FUNC eg. check if enough coin, pos is free
+                    if (attempt_buy_pet(game_info, shop_pet, False) == 0):
+                        team_size += 1
+                        horse_acquired = True
+                        return
+
+            # if there was no horse, look for a top 4 rank pet
+
+            # look at top 4 for tier 1
+            rank_range = len(tier1_ranks)
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info, game_info.player_info.shop_pets)
+            print("Highest value pets index list:")
+            # print(shop_pet_ranking)
+
+            # check that there is actually top 4 rank pet
+            # check if the first element in our ranking is in the top 4
+            if tier1_dict[game_info.player_info.shop_pets[shop_pet_ranking[0]].type] < 4:
+                # buy the top 4 pet
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[0]], False) == 0):
+                    team_size += 1
+                    # update game info
+                    return
+            # buy the (sub-par) top rank pet available and roll
+            else:
+                # buy the crappy pet
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[0]], False) == 0):
+                    team_size += 1
+                    print("we had to settle for a sub-par pet", flush = True)
+                    # update the game info
+                    game_info = bot_battle.get_game_info()
+                    # roll the dice
+                    bot_battle.reroll_shop()
+                    rolls_performed += 1
+                    return
+    
+        elif (rolls_performed > 0):
+            # must buy >= 1 pet
+            # how many more pets do we need?
+            # if team_size == 3:
+            #     # end the turn TODO!!!!
+            #     # print("r1 ending turn - 162", flush = True)
+            #     # bot_battle.end_turn()
+            #     return
+            
+            # calculate the rank range list
+            rank_range = len(tier1_ranks)
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info, game_info.player_info.shop_pets)
+
+            top_pet_index = 0
+            # check if the top pet is a horse and there is one already
+            for pet_ranking in shop_pet_ranking:
+                if tier1_dict[game_info.player_info.shop_pets[pet_ranking].type] == 0:
+                    if horse_acquired is True:
+                        top_pet_index += 1
+                    else:
+                        break
+                else:
+                    break
+            
+            if (top_pet_index >= len(game_info.player_info.shop_pets)):
+                print("We were forced to buy another horse because we ran out of non-horse pets", flush = True)
+                top_pet_index = 0
+            
+
+            if (team_size == 2):
+                # need to buy 1 pet
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                    team_size += 1
+                    # print("ending turn - 185", flush = True)
+                    # bot_battle.end_turn()
+                    return
+
+            if (team_size == 1):
+                # need to buy 2 more pets total
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                    team_size += 1
+                    return
+                    
+        else:
+            # we have bought a pet, but we have not rolled
+            # calculate the rank range list
+            rank_range = len(tier1_ranks)
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info, game_info.player_info.shop_pets)
+
+            top_pet_index = 0
+            # check if the top pet is a horse and there is one already
+            for pet_ranking in shop_pet_ranking:
+                if tier1_dict[game_info.player_info.shop_pets[pet_ranking].type] == 0:
+                    if horse_acquired is True:
+                        top_pet_index += 1
+                    else:
+                        break
+                else:
+                    break
+              
+            if (top_pet_index >= len(game_info.player_info.shop_pets)):
+                top_pet_index = 0
+            
+
+            if team_size == 1:
+                # we want to look for a second top-4 pet and then buy it if there is one
+                if top_pet_index < len(game_info.player_info.shop_pets):
+                    # check for a second top 4 pet in remaining shop selection
+                    if tier1_dict[game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]].type] < 4:
+                        # buy the top 4 pet
+                        if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                            team_size += 1
+                            return
+                    else:
+                        # roll again
+                        bot_battle.reroll_shop()
+                        rolls_performed += 1
+                        return
+                else:
+                    # no non-horses, roll again
+                    bot_battle.reroll_shop()
+                    rolls_performed += 1
+                    return
+
+            if team_size == 2:
+                # we want to look for a third top-4 pet and TODO: FREEZE it before rerolling
+                if top_pet_index < len(game_info.player_info.shop_pets):
+                    # check for a second top 4 pet in remaining shop selection
+                    if tier1_dict[game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]].type] < 4:
+                        # buy the top 4 pet
+                        if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                            team_size += 1
+                            # end turn
+                            # bot_battle.end_turn()
+                            return
+                    else:
+                        # roll again
+                        bot_battle.reroll_shop()
+                        rolls_performed += 1
+                        return
+                else:
+                    # no non-horses, roll again
+                    bot_battle.reroll_shop()
+                    rolls_performed += 1
+                    return
+        
+
+        print("round 1 turn ended : )", flush = True)
+        end_round_reset(bot_battle)
+        return'''
+    ROUND 1
+    '''
+    # SOPHIE ROUND 1 DRAFT FUNC HERE:
+    '''
+    Round 1 structure:
+        - buy 3 pets
+        - buy 0 food
+        - use 1 roll MAX. to aid this process
+    '''
+
+    def r1_make_move(game_info: 'GameInfo'):
+        # case 1: currently team is empty
+        global team_size
+        global horse_acquired
+        global rolls_performed
+        
+        if (game_info.player_info.coins < 3):
+            bot_battle.end_turn()
+            rolls_performed = 0
+            return
+
+        if team_size == 0:
+            # 92% chance that >=1 top 4 pet will be present
+            # look for top 4 rank pet/s, starting with horse
+            for shop_pet in game_info.player_info.shop_pets:
+                if shop_pet.type == PetType.HORSE:
+                    # buy only a single horse
+                    # potentially put BUY in FUNC eg. check if enough coin, pos is free
+                    if (attempt_buy_pet(game_info, shop_pet, False) == 0):
+                        team_size += 1
+                        horse_acquired = True
+                        return
+
+            # if there was no horse, look for a top 4 rank pet
+
+            # look at top 4 for tier 1
+            rank_range = len(tier1_ranks)
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info, game_info.player_info.shop_pets)
+            print("Highest value pets index list:")
+            # print(shop_pet_ranking)
+
+            # check that there is actually top 4 rank pet
+            # check if the first element in our ranking is in the top 4
+            if tier1_dict[game_info.player_info.shop_pets[shop_pet_ranking[0]].type] < 4:
+                # buy the top 4 pet
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[0]], False) == 0):
+                    team_size += 1
+                    # update game info
+                    return
+            # buy the (sub-par) top rank pet available and roll
+            else:
+                # buy the crappy pet
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[0]], False) == 0):
+                    team_size += 1
+                    print("we had to settle for a sub-par pet", flush = True)
+                    # update the game info
+                    game_info = bot_battle.get_game_info()
+                    # roll the dice
+                    bot_battle.reroll_shop()
+                    rolls_performed += 1
+                    return
+    
+        elif (rolls_performed > 0):
+            # must buy >= 1 pet
+            # how many more pets do we need?
+            # if team_size == 3:
+            #     # end the turn TODO!!!!
+            #     # print("r1 ending turn - 162", flush = True)
+            #     # bot_battle.end_turn()
+            #     return
+            
+            # calculate the rank range list
+            rank_range = len(tier1_ranks)
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info, game_info.player_info.shop_pets)
+
+            top_pet_index = 0
+            # check if the top pet is a horse and there is one already
+            for pet_ranking in shop_pet_ranking:
+                if tier1_dict[game_info.player_info.shop_pets[pet_ranking].type] == 0:
+                    if horse_acquired is True:
+                        top_pet_index += 1
+                    else:
+                        break
+                else:
+                    break
+            
+            if (top_pet_index >= len(game_info.player_info.shop_pets)):
+                print("We were forced to buy another horse because we ran out of non-horse pets", flush = True)
+                top_pet_index = 0
+            
+
+            if (team_size == 2):
+                # need to buy 1 pet
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                    team_size += 1
+                    # print("ending turn - 185", flush = True)
+                    # bot_battle.end_turn()
+                    return
+
+            if (team_size == 1):
+                # need to buy 2 more pets total
+                if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                    team_size += 1
+                    return
+                    
+        else:
+            # we have bought a pet, but we have not rolled
+            # calculate the rank range list
+            rank_range = len(tier1_ranks)
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info, game_info.player_info.shop_pets)
+
+            top_pet_index = 0
+            # check if the top pet is a horse and there is one already
+            for pet_ranking in shop_pet_ranking:
+                if tier1_dict[game_info.player_info.shop_pets[pet_ranking].type] == 0:
+                    if horse_acquired is True:
+                        top_pet_index += 1
+                    else:
+                        break
+                else:
+                    break
+              
+            if (top_pet_index >= len(game_info.player_info.shop_pets)):
+                top_pet_index = 0
+            
+
+            if team_size == 1:
+                # we want to look for a second top-4 pet and then buy it if there is one
+                if top_pet_index < len(game_info.player_info.shop_pets):
+                    # check for a second top 4 pet in remaining shop selection
+                    if tier1_dict[game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]].type] < 4:
+                        # buy the top 4 pet
+                        if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                            team_size += 1
+                            return
+                    else:
+                        # roll again
+                        bot_battle.reroll_shop()
+                        rolls_performed += 1
+                        return
+                else:
+                    # no non-horses, roll again
+                    bot_battle.reroll_shop()
+                    rolls_performed += 1
+                    return
+
+            if team_size == 2:
+                # we want to look for a third top-4 pet and TODO: FREEZE it before rerolling
+                if top_pet_index < len(game_info.player_info.shop_pets):
+                    # check for a second top 4 pet in remaining shop selection
+                    if tier1_dict[game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]].type] < 4:
+                        # buy the top 4 pet
+                        if (attempt_buy_pet(game_info, game_info.player_info.shop_pets[shop_pet_ranking[top_pet_index]], False) == 0):
+                            team_size += 1
+                            # end turn
+                            # bot_battle.end_turn()
+                            return
+                    else:
+                        # roll again
+                        bot_battle.reroll_shop()
+                        rolls_performed += 1
+                        return
+                else:
+                    # no non-horses, roll again
+                    bot_battle.reroll_shop()
+                    rolls_performed += 1
+                    return
+        
+
+        print("round 1 turn ended : )", flush = True)
+        end_round_reset(bot_battle)
+        return       '''
+    Round 2 structure:
+        - 1 Horse priority
+            - Feed Priority: 1.Horse 2.Apple
+        - buy 2 pets
+            - inital shop: top 4
+            - re-roll: get best 2 
+        - buy 1 food
+            - Freeze: Apple
+        - use 1 roll MAX. to aid this process
+        - full team
+        
+
+    def r2_make_move(game_info: 'GameInfo', team_size: int):
+
+        # copied from round 2: (some very minor edits, but not complete at all)
+        # case 1: currently team has 3 pets
+        if team_size == 3:
+            # buy 2 pets
+            # look for top 4 rank pet/s
+            for shop_pet in game_info.player_info.shop_pets:
+                if shop_pet.type == PetType.HORSE and (not horse_acquired):
+                    # buy only a single horse
+                    if (attempt_buy(shop_pet) == 0):
+                        team_size += 1
+                        bot_battle.buy_pet(shop_pet, HORSE_POS)
+                        horse_acquired = True
+                        return
+
+            # if there was no horse, look for a top 4 rank pet
+
+            # look at top 4 for tier 1
+            rank_range = 4
+            shop_pet_ranking = create_range_list(rank_range, tier1_ranks, game_info)
+
+            # check that there is actually top 4 rank pet
+            if len(top_range_pos) == 0:
+                # buy the (sub-par) top rank pet available and roll
+                bot_battle.buy_pet(shop_pet, )
+                # update game info
+                game_info = bot_battle.get_game_info()
+                # roll the dice
+                # TODO: complete this section
+            '''' end copy''''
+        # case 2: currently team has 4 pets
+        if team_size == 4:    
+        
+
+
+    
+    # 
+    '''
+
+
+
+
+'''
+    # OUR TIER 1 - 2 PLAN
+
+    # ROUND 1 (game_info.round_num == 1)
+
+    # we probably want a variable "horse_acquired"
+    # to make sure we only buy one
+
+    # we probably also want a roll count maybe as an array
+    # so that we can fetch how many rolls we are allowed by round number
+    rolls_allowed = {1, 1, 4, 5, 2, 2, 1, 1} 
+        # ********for tier 4, if pet sold (and lvl = 1), rolls_allowed[round_i]++
+        # ((lvl 2 means rolls += 2))
+
+    
+
+
+    # rolls_performed = 0
+    # !!! reset to 0 after each buy stage (ie. per round)
+
+    # def attempt_roll(game_info, round_num, rolls_performed): -> bool
+        # if rolls_allowed[round_num] > rolls_performed:
+            # perform roll.....
+            # return true
+        # else:
+            # return false
+
+
+        # do not buy food
+        # if shop contains pet in top ***4*** ranking: (game trials suggested top 5 but we can account for the 3 missing pets)
+            # (1) buy top rank pet in shop
+            # if horse, horse_acquired is now true (yay!)
+            # if shop contains pet in top ***4*** ranking:
+                # if top rank pet is horse AND team contains horse already:
+                    # skip horse
+                    # if shop STILL contains pet in top ***4*** ranking:
+                        # if the pet IS rank 4:
+                            # freeze the pet
+                            # if attempt_roll() == false:
+                                # unfreeze and buy the pet
+                            # else:
+                                # if shop contains pet in top ***3*** ranking:
+                                
+                        # else:
+                            # buy top rank pet in shop
+                        # if shop contains a 
+                    # else:
+                        # roll if rolls_allowed[ROUND_1 (= 0)] not exceeded
+                # else:
+                    # buy top rank pet in shop
+            # else:
+                # roll if rolls_allowed[ROUND_1 (= 0)] not exceeded
+        # else:
+            # roll if rolls_allowed[ROUND_1 (= 0)] not exceeded
+
+            # buy 2 more pets in ranking order....
+            # if team contains horse already:
+                # skip horse if there are 2 top 5 pet in the shop
+                # buy the 2 top rank
+
+
+
+
+
+    # ROUND 2
+    # must feed horse apple or other horse...
+    # if you see an apple, feed it to the horse
+    # if you see a horse in the shop (and you already have one) but no apple in the shop:
+        # freeze the horse
+    # if, when you next roll, you see an apple:
+        # buy the apple
+        # feed the apple to the horse
+
+
+
+    # ROUND 3
+    # max of 4 rolls -> from replacing 3 pets, will occur if 3 top-3 pets appear
+    
+    # 3/3 found case:
+        # if you find 3 top-3 pets (duplicates allowed):
+            # sell 3 pets
+            # buy your top 3
+            # if you found them using only one roll:
+                # buy 1 food and feed it to your lowest rank pet
+
+        # if after 1 roll you have only found 2 top-3 pets in total (incl. starting selection):
+            # roll 3 times
+            # if you see a top-3 pet you already have
+                # freeze it
+                # (only do one freeze, on more powerful pet)
+                # if you roll again and see the higher ranked pet of the 2 you already have:
+                    # unfreeze the less powerful
+                    # freeze the more powerful
+                    # (to optimise your chance of seeing your missing top-3 pet)
+                # note that unlike in round 1, where the best possible team would have a 1, 2, 2 combo
+                # the best possible team of round 3 would have diversity, and include a 1, 2, 3, and tier 1's 1 and 2
+
+        # similar process for if you only find 1 top-3 pet after 1 roll (incl. starting selection)
+
+
+    
+'''
+
+
